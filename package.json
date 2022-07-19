@@ -1,0 +1,25 @@
+{
+  "dependencies": {
+    "body-parser": "^1.20.0",
+    "compression": "^1.7.4",
+    "express": "^4.18.1",
+    "express-validator": "^6.14.2",
+    "helmet": "^5.1.0",
+    "mongoose": "^6.4.4",
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.19"
+  },
+  "name": "assignment-elred",
+  "version": "1.0.0",
+  "description": "Assignment ElRed",
+  "main": "app.js",
+  "engines": {
+    "node":"16.15.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "set NODE_ENV=production&& set MONGO_USER=Jasmeen&& set MONGO_PASSWORD=jasmeen123456&& set MONGO_DEFAULT_DATABASE=taskInfo&& set PORT=3000&& node app.js"
+  },
+  "author": "Jasmeen",
+  "license": "ISC"
+}
