@@ -18,6 +18,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "start:dev":"nodemon app.js",
     "start": "set NODE_ENV=production&& set MONGO_USER=Jasmeen&& set MONGO_PASSWORD=jasmeen123456&& set MONGO_DEFAULT_DATABASE=taskInfo&& set PORT=3000&& node app.js"
   },
   "author": "Jasmeen",

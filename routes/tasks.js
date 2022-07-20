@@ -21,7 +21,7 @@ router.post(
       .withMessage("Task Title should be atleast 4 characters!"),
     body("taskDescription")
       .trim()
-      .isLength({ min: 4 })
+      .isLength({ min: 10 })
       .withMessage("Task Description should be atleast 10 characters!"),
     body("dateOfTask")
       .trim()
@@ -65,7 +65,7 @@ router.patch(
       .optional(),
     body("taskDescription")
       .trim()
-      .isLength({ min: 4 })
+      .isLength({ min: 10 })
       .withMessage("Task Description should be atleast 10 characters!")
       .optional(),
     body("dateOfTask")

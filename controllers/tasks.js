@@ -15,7 +15,7 @@ exports.getTasks = (req, res, next) => {
       error.success = false;
       error.message = "Unable to fetch tasks!";
       error.result = [];
-      next(error) ;
+      next(error);
     });
 };
 
@@ -27,7 +27,8 @@ exports.postTask = (req, res, next) => {
     error.success = false;
     error.message = errors.array();
     error.result = [];
-    throw error;
+    
+    next(error)
   }
 
   const name = req.body.name;
@@ -60,9 +61,9 @@ exports.postTask = (req, res, next) => {
       error.success = false;
       error.message = "Unable to create task!";
       error.result = [];
-      next (error)
+      next(error);
     });
-};
+}; 
 
 exports.updateTask = (req, res, next) => {
   const errors = validationResult(req);
@@ -72,7 +73,8 @@ exports.updateTask = (req, res, next) => {
     error.success = false;
     error.message = errors.array();
     error.result = [];
-    throw error;
+    next(error)
+
   }
 
   const taskId = req.params.taskId;
@@ -80,12 +82,33 @@ exports.updateTask = (req, res, next) => {
   const updatedEmail = req.body.email;
   const updatedTaskTitle = req.body.taskTitle;
   const updatedTaskDescription = req.body.taskDescription;
-  const updatedDateOfTask = req.body.dateOfTask;
+  const updatedDateOfTask = req.body.dateOfTask; 
   const updatedStatus = req.body.status;
+ 
+
+  const keys = Object.keys(req.body);
+  let result= [];
+  keys.map((key,i)=>{
+
+    if(key === 'name' || key ==='email' ||  key ==='status' || key ==='dateOfTask' ||  key ==='taskTitle' ||  key ==='taskDescription'){
+      result[i] = true;
+    } 
+    else{
+      result[i] = false; 
+    }
+  })
 
 
+if(result.includes(false)){
+    const error = new Error("Invalid keys! We expect the keys: name, email, taskTitle, taskDescription, dateOfTask, status");
+    error.statusCode = 422;
+    error.success = false;
+    error.message = "Invalid keys! We expect the keys: name, email, taskTitle, taskDescription, dateOfTask, status"
+    error.result = [];
+    throw error;
+  }
 
-  Task.findById(taskId)
+  Task.findById(taskId) 
     .then((task) => {
       task.name = updatedName ? updatedName : task.name;
       task.email = updatedEmail ? updatedEmail : task.email;
@@ -109,14 +132,25 @@ exports.updateTask = (req, res, next) => {
       error.success = false;
       error.message = "Unable to update task, Please check the task id!";
       error.result = [];
-      next(error)
-    });
-};
-
+      next(error);
+    }); 
+}; 
+ 
 exports.deleteTask = (req, res, next) => {
-  const taskId = req.params.taskId;
+  const taskId = req.params.taskId; 
+  Task.findById(taskId)
+    .then((task) => {
+      if (!task) {
+        const error = new Error("Cannot find the task!");
+        error.statusCode = 422;
+        error.success = false;
+        error.message = "Cannot find the task!";
+        error.result = [];
+        throw error;
+      }
 
-  Task.findByIdAndRemove(taskId)
+      return Task.findByIdAndDelete(taskId);
+    })
     .then((result) => {
       res.status(200).json({
         success: true,
@@ -127,8 +161,8 @@ exports.deleteTask = (req, res, next) => {
     .catch((error) => {
       error.statusCode = 500;
       error.success = false;
-      error.message = "Unable to delete task, Please check the task id!";
+      error.message = "Cannot find the task!";
       error.result = [];
-      next(error)
+      next(error);
     });
 };

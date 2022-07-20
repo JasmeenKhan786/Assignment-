@@ -7,7 +7,6 @@ const morgan = require("morgan");
 // const fs = require('fs');
 // const path = require('path');
 
-
 const taskRoutes = require("./routes/tasks");
 
 const MONGO_DB_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.nlornpg.mongodb.net/${process.env.MONGO_DEFAULT_DATABASE}?retryWrites=true&w=majority`;
@@ -42,9 +41,20 @@ app.use("/", (req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
+  let message;
+  console.log(err.message)
+  if (Array.isArray(err.message)) {
+     message = err.message.map((e) => {
+      return e.msg;
+    });
+  }
+  else{
+    message = err.message;
+    
+  }
   res
     .status(err.statusCode)
-    .json({ message: err.message, success: err.success, result: err.result });
+    .json({ message: message, success: err.success, result: err.result });
 });
 
 mongoose
@@ -52,6 +62,6 @@ mongoose
   .then(() => {
     app.listen(process.env.PORT || 3000);
   })
-  .catch((err) => { 
+  .catch((err) => {
     console.log(err);
   });
