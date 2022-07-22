@@ -1,5 +1,27 @@
 const Task = require("../models/tasks");
 const { validationResult } = require("express-validator/check");
+function checkKeys(actualKeysArray, expectedKeysArray) {
+  let missingKeys = actualKeysArray.map((key, i) => {
+    if (expectedKeysArray.includes(key)) {
+      // if(key === 'name' || key ==='email' ||  key ==='status' || key ==='dateOfTask' ||  key ==='taskTitle' ||  key ==='taskDescription'){
+      return null;
+    } else {
+      return key;
+    }
+  });
+
+  missingKeys = missingKeys.filter((key) => {
+    return key !== null;
+  });
+
+  if (missingKeys.length > 0) {
+    //returns false if the keys are invalid or mismatch or we have extra keys
+    return { status: false, missingKeys: missingKeys };
+  } else {
+    //return true if we have correct keys
+    return { status: true, missingKeys: [] };
+  }
+}
 
 exports.getTasks = (req, res, next) => {
   Task.find()
@@ -27,8 +49,8 @@ exports.postTask = (req, res, next) => {
     error.success = false;
     error.message = errors.array();
     error.result = [];
-    
-    next(error)
+
+    next(error);
   }
 
   const name = req.body.name;
@@ -63,18 +85,19 @@ exports.postTask = (req, res, next) => {
       error.result = [];
       next(error);
     });
-}; 
+};
 
 exports.updateTask = (req, res, next) => {
   const errors = validationResult(req);
+
   if (!errors.isEmpty()) {
     const error = new Error("Validation failed, entered data is incorrect.");
     error.statusCode = 422;
     error.success = false;
-    error.message = errors.array();
+    error.message =
+      errors.array().length === 1 ? errors.array()[0].msg : errors.array();
     error.result = [];
-    next(error)
-
+    next(error);
   }
 
   const taskId = req.params.taskId;
@@ -82,33 +105,27 @@ exports.updateTask = (req, res, next) => {
   const updatedEmail = req.body.email;
   const updatedTaskTitle = req.body.taskTitle;
   const updatedTaskDescription = req.body.taskDescription;
-  const updatedDateOfTask = req.body.dateOfTask; 
+  const updatedDateOfTask = req.body.dateOfTask;
   const updatedStatus = req.body.status;
- 
 
-  const keys = Object.keys(req.body);
-  let result= [];
-  keys.map((key,i)=>{
-
-    if(key === 'name' || key ==='email' ||  key ==='status' || key ==='dateOfTask' ||  key ==='taskTitle' ||  key ==='taskDescription'){
-      result[i] = true;
-    } 
-    else{
-      result[i] = false; 
-    }
-  })
-
-
-if(result.includes(false)){
-    const error = new Error("Invalid keys! We expect the keys: name, email, taskTitle, taskDescription, dateOfTask, status");
+  const missingKeys = checkKeys(Object.keys(req.body), [
+    "email",
+    "name",
+    "taskTitle",
+    "taskDescription",
+    "dateOfTask",
+    "status",
+  ]);
+  if (!missingKeys.status) {
+    const error = new Error("Invalid keys!");
     error.statusCode = 422;
     error.success = false;
-    error.message = "Invalid keys! We expect the keys: name, email, taskTitle, taskDescription, dateOfTask, status"
+    error.message = "Invalid key - " +missingKeys.missingKeys
     error.result = [];
     throw error;
   }
 
-  Task.findById(taskId) 
+  Task.findById(taskId)
     .then((task) => {
       task.name = updatedName ? updatedName : task.name;
       task.email = updatedEmail ? updatedEmail : task.email;
@@ -133,11 +150,11 @@ if(result.includes(false)){
       error.message = "Unable to update task, Please check the task id!";
       error.result = [];
       next(error);
-    }); 
-}; 
- 
+    });
+};
+
 exports.deleteTask = (req, res, next) => {
-  const taskId = req.params.taskId; 
+  const taskId = req.params.taskId;
   Task.findById(taskId)
     .then((task) => {
       if (!task) {

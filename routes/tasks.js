@@ -3,11 +3,15 @@ const { body, check } = require("express-validator/check");
 const router = express.Router();
 
 const taskController = require("../controllers/tasks");
+ 
+const isAuth = require('../middleware/isAuth') 
 
-router.get("/", taskController.getTasks);
+ 
+router.get("/",isAuth, taskController.getTasks);
 
 router.post(
   "/createTask",
+  isAuth,
   [
     body("name").trim().notEmpty().withMessage("Please enter a valid name!"),
     body("email")
@@ -46,6 +50,8 @@ router.post(
 
 router.patch(
   "/updateTask/:taskId",
+  isAuth,
+
   [
     body("name")
       .trim()
@@ -91,6 +97,9 @@ router.patch(
   taskController.updateTask
 );
 
-router.delete("/deleteTask/:taskId", taskController.deleteTask);
+router.delete("/deleteTask/:taskId", isAuth, taskController.deleteTask);
+
+
+
 
 module.exports = router;

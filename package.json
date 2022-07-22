@@ -5,6 +5,7 @@
     "express": "^4.18.1",
     "express-validator": "^6.14.2",
     "helmet": "^5.1.0",
+    "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.4.4",
     "morgan": "^1.10.0",
     "nodemon": "^2.0.19"
@@ -14,11 +15,11 @@
   "description": "Assignment ElRed",
   "main": "app.js",
   "engines": {
-    "node":"16.15.1"
+    "node": "16.15.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start:dev":"nodemon app.js",
+    "start:dev": "nodemon app.js",
     "start": "set NODE_ENV=production&& set MONGO_USER=Jasmeen&& set MONGO_PASSWORD=jasmeen123456&& set MONGO_DEFAULT_DATABASE=taskInfo&& set PORT=3000&& node app.js"
   },
   "author": "Jasmeen",
