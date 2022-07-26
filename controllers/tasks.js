@@ -1,10 +1,13 @@
 const Task = require("../models/tasks");
+const User = require("../models/users");
+
 const { validationResult } = require("express-validator/check");
+
+
 function checkKeys(actualKeysArray, expectedKeysArray) {
   let missingKeys = actualKeysArray.map((key, i) => {
     if (expectedKeysArray.includes(key)) {
-      // if(key === 'name' || key ==='email' ||  key ==='status' || key ==='dateOfTask' ||  key ==='taskTitle' ||  key ==='taskDescription'){
-      return null;
+      return null; 
     } else {
       return key;
     }
@@ -42,40 +45,65 @@ exports.getTasks = (req, res, next) => {
 };
 
 exports.postTask = (req, res, next) => {
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error("Validation failed, entered data is incorrect.");
     error.statusCode = 422;
     error.success = false;
-    error.message = errors.array();
+    error.message =
+      errors.array().length === 1 ? errors.array()[0].msg : errors.array();
     error.result = [];
 
     next(error);
   }
 
-  const name = req.body.name;
-  const email = req.body.email;
+  const email = req.email;
   const taskTitle = req.body.taskTitle;
   const taskDescription = req.body.taskDescription;
   const dateOfTask = req.body.dateOfTask;
   const status = req.body.status;
+  const userId = req.uid;
+
+  const missingKeys = checkKeys(Object.keys(req.body), [
+    "taskTitle",
+    "taskDescription",
+    "dateOfTask",
+    "status",
+  ]);
+  if (!missingKeys.status) {
+    const error = new Error("Invalid keys!");
+    error.statusCode = 422;
+    error.success = false;
+    error.message = "Invalid key - " + missingKeys.missingKeys;
+    error.result = [];
+    next(error);
+  }
 
   const task = new Task({
-    name: name,
-    email: email,
     taskTitle: taskTitle,
     taskDescription: taskDescription,
     dateOfTask: dateOfTask,
     status: status,
+    userId: userId,
   });
 
+  let taskId;
   task
     .save()
+    .then((result) => {
+      taskId = result._id;
+      return User.findById(userId);
+    })
+    .then((user) => {
+      user.tasks.push(taskId);
+      return user.save();
+    })
     .then((result) => {
       res.status(201).json({
         success: true,
         message: "Task created succesfully",
-        result: task,
+        result: [task],
       });
     })
     .catch((error) => {
@@ -88,6 +116,7 @@ exports.postTask = (req, res, next) => {
 };
 
 exports.updateTask = (req, res, next) => {
+
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -101,16 +130,13 @@ exports.updateTask = (req, res, next) => {
   }
 
   const taskId = req.params.taskId;
-  const updatedName = req.body.name;
-  const updatedEmail = req.body.email;
+  const userId = req.uid;
   const updatedTaskTitle = req.body.taskTitle;
   const updatedTaskDescription = req.body.taskDescription;
   const updatedDateOfTask = req.body.dateOfTask;
   const updatedStatus = req.body.status;
 
   const missingKeys = checkKeys(Object.keys(req.body), [
-    "email",
-    "name",
     "taskTitle",
     "taskDescription",
     "dateOfTask",
@@ -120,28 +146,37 @@ exports.updateTask = (req, res, next) => {
     const error = new Error("Invalid keys!");
     error.statusCode = 422;
     error.success = false;
-    error.message = "Invalid key - " +missingKeys.missingKeys
+    error.message = "Invalid key - " + missingKeys.missingKeys;
     error.result = [];
     throw error;
   }
 
   Task.findById(taskId)
     .then((task) => {
-      task.name = updatedName ? updatedName : task.name;
-      task.email = updatedEmail ? updatedEmail : task.email;
-      task.taskTitle = updatedTaskTitle ? updatedTaskTitle : task.taskTitle;
-      task.taskDescription = updatedTaskDescription
-        ? updatedTaskDescription
-        : task.taskDescription;
-      task.dateOfTask = updatedDateOfTask ? updatedDateOfTask : task.dateOfTask;
-      task.status = updatedStatus ? updatedStatus : task.status;
-      return task.save();
+      if (task.userId.toString() === userId.toString()) {
+        task.taskTitle = updatedTaskTitle ? updatedTaskTitle : task.taskTitle;
+        task.taskDescription = updatedTaskDescription
+          ? updatedTaskDescription
+          : task.taskDescription;
+        task.dateOfTask = updatedDateOfTask
+          ? updatedDateOfTask
+          : task.dateOfTask;
+        task.status = updatedStatus ? updatedStatus : task.status;
+        return task.save();
+      } else {
+        const error = new Error("User is not authorized to update this task!");
+        error.statusCode = 422;
+        error.success = false;
+        error.message = "User is not authorized to update this task!";
+        error.result = [];
+        next(error);
+      }
     })
     .then((result) => {
       res.status(200).json({
         success: true,
         message: "Task updated successfully",
-        result: result,
+        result: [result],
       });
     })
     .catch((error) => {
@@ -166,7 +201,31 @@ exports.deleteTask = (req, res, next) => {
         throw error;
       }
 
+      if (task.userId.toString() !== req.uid.toString()) {
+        const error = new Error("User is not authorized to delete this task!");
+        error.statusCode = 422;
+        error.success = false;
+        error.message = "User is not authorized to delete this task!";
+        error.result = [];
+        next(error);
+      } 
+
       return Task.findByIdAndDelete(taskId);
+
+    })
+    .then((result) => {
+      User.findById(req.uid)
+        .then((user) => {
+          user.tasks = user.tasks.pull(taskId)
+          return user.save();
+        })
+        .catch((error) => {
+          error.statusCode = 500;
+          error.success = false;
+          error.message = "Cannot find the user!";
+          error.result = [];
+          next(error);
+        });
     })
     .then((result) => {
       res.status(200).json({

@@ -1,105 +1,18 @@
 const express = require("express");
-const { body, check } = require("express-validator/check");
 const router = express.Router();
 
+const validation = require("../functions/validationFunctions");
+
 const taskController = require("../controllers/tasks");
- 
-const isAuth = require('../middleware/isAuth') 
 
- 
-router.get("/",isAuth, taskController.getTasks);
+const isAuth = require("../middleware/authMiddleware");
 
-router.post(
-  "/createTask",
-  isAuth,
-  [
-    body("name").trim().notEmpty().withMessage("Please enter a valid name!"),
-    body("email")
-      .trim()
-      .isEmail()
-      .withMessage("Please enter a valid email!")
-      .normalizeEmail(),
-    body("taskTitle")
-      .trim()
-      .isLength({ min: 4 })
-      .withMessage("Task Title should be atleast 4 characters!"),
-    body("taskDescription")
-      .trim()
-      .isLength({ min: 10 })
-      .withMessage("Task Description should be atleast 10 characters!"),
-    body("dateOfTask")
-      .trim()
-      .isDate()
-      .withMessage("Date should be of the format yyyy/mm/dd or yyyy-mm-dd "),
-    body("status")
-      .trim()
-      .notEmpty()
-      .custom((value, { req }) => {
-        const val = value.toLowerCase().toString();
-        if (val === "completed" || val === "wip" || val === "delayed") {
-          return Promise.resolve();
-        } else {
-          return Promise.reject(
-            "Status can only take the value : Completed, Delayed, WIP"
-          );
-        }
-      }),
-  ],
-  taskController.postTask
-);
+router.get("/", isAuth, taskController.getTasks);
 
-router.patch(
-  "/updateTask/:taskId",
-  isAuth,
+router.post("/createTask", isAuth, validation.postTaskValidation, taskController.postTask);
 
-  [
-    body("name")
-      .trim()
-      .notEmpty()
-      .withMessage("Please enter a valid name!")
-      .optional(),
-    body("email")
-      .trim()
-      .isEmail()
-      .withMessage("Please enter a valid email!")
-      .normalizeEmail()
-      .optional(),
-    body("taskTitle")
-      .trim()
-      .isLength({ min: 4 })
-      .withMessage("Task Title should be atleast 4 characters!")
-      .optional(),
-    body("taskDescription")
-      .trim()
-      .isLength({ min: 10 })
-      .withMessage("Task Description should be atleast 10 characters!")
-      .optional(),
-    body("dateOfTask")
-      .trim()
-      .isDate()
-      .withMessage("Date should be of the format yyyy/mm/dd or yyyy-mm-dd ")
-      .optional(),
-    body("status")
-      .trim()
-      .notEmpty()
-      .optional()
-      .custom((value, { req }) => {
-        const val = value.toLowerCase().toString();
-        if (val === "completed" || val === "wip" || val === "delayed") {
-          return Promise.resolve();
-        } else {
-          return Promise.reject(
-            "Status can only take the value : Completed, Delayed, WIP"
-          );
-        }
-      }),
-  ],
-  taskController.updateTask
-);
+router.patch("/updateTask/:taskId", isAuth, validation.patchTaskValidation, taskController.updateTask);
 
 router.delete("/deleteTask/:taskId", isAuth, taskController.deleteTask);
-
-
-
 
 module.exports = router;

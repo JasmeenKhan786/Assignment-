@@ -2,7 +2,6 @@ const User = require("../models/users");
 const { validationResult } = require("express-validator/check");
 const jwt = require("jsonwebtoken");
 
-
 exports.signUpUser = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -39,14 +38,19 @@ exports.signUpUser = (req, res, next) => {
   User.findOne({ email: email })
     .then((user) => {
       if (!user) {
-        const user = new User({ name: name, email: email, password: password });
+        const user = new User({
+          name: name,
+          email: email,
+          password: password,
+          tasks: [],
+        });
         user
           .save()
           .then((user) => {
             res.status(201).json({
               success: true,
               message: "User created successfully!",
-              result: user,
+              result: [user],
             });
           })
           .catch((error) => {
@@ -98,23 +102,19 @@ exports.signInUser = (req, res, next) => {
     error.result = [];
     next(error);
   }
-
+  let token;
   User.findOne({ email: email, password: password })
     .then((user) => {
       if (user) {
-        console.log(user);
-        const token = jwt.sign(
+        token = jwt.sign(
           { userId: user._id.toString(), email: email },
           "MySecretKey",
           { expiresIn: "1h" }
         );
 
-        res.status(200).json({
-          success: true,
-          message: "User Logged In",
-          result: user,
-          token: token,
-        });
+        user.isAuth = true;
+
+        return user.save();
       } else {
         const error = new Error("Invalid email or password");
         error.statusCode = 422;
@@ -123,6 +123,15 @@ exports.signInUser = (req, res, next) => {
         error.result = [];
         next(error);
       }
+    })
+    .then((result) => {
+      res.status(200).json({
+        success: true,
+        message: "User Logged In",
+        result: [result],
+        token: token,
+        expiresIn:"1h"
+      });
     })
     .catch((error) => {
       error.statusCode = 422;
